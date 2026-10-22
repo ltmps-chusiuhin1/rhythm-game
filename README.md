@@ -2,55 +2,315 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>藍循節奏大師 Rhythm Game</title>
+  <title>藍循節奏大師: 1.0正式版</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+
+  <!-- Firebase & Google Identity Services -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+
   <style>
+    :root {
+      --bg-dark: #020617;
+      --glass-panel: rgba(15, 25, 45, 0.35);
+      --glass-border: rgba(255, 255, 255, 0.2);
+      --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+      --glass-blur: blur(12px);
+      --p1-color: #22d3ee;
+      --p2-color: #f472b6;
+      --rank-s: #22d3ee;
+      --rank-a: #4ade80;
+      --rank-b: #facc15;
+      --rank-c: #fb923c;
+      --rank-d: #f87171;
+      --comp-gold: #fbbf24;
+      --prog-color: #a78bfa;
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
+    }
+
     * {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
     }
+
     body {
-      background-color: #030305;
-      color: #ffffff;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: var(--bg-dark);
+      color: var(--text-primary);
+      font-family: 'Segoe UI', Roboto, Helvetica, sans-serif;
       display: flex;
       justify-content: center;
       align-items: center;
-      min-height: 100vh;
+      height: 100vh;
       overflow: hidden;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: none;
+      -webkit-touch-callout: none;
+      position: relative;
     }
+
     .bg-layer {
       position: absolute;
       top: 0;
       left: 0;
       width: 100%;
       height: 100%;
-      z-index: -1;
-    }
-    #game-wrapper {
-      position: relative;
-      width: 1100px;
-      height: 680px;
-      background: rgba(0, 0, 0, 0.8);
-      border: 2px solid rgba(255, 255, 255, 0.2);
-      border-radius: 12px;
       overflow: hidden;
-      box-shadow: 0 0 30px rgba(0, 242, 254, 0.3);
+      z-index: 0;
+      pointer-events: none;
+      background: radial-gradient(circle at center, #0f172a 0%, #020617 100%);
     }
-    #gameCanvas {
+
+    .aurora-container {
+      position: absolute;
       width: 100%;
       height: 100%;
-      display: block;
+      top: 0;
+      left: 0;
+      overflow: hidden;
+      opacity: 0.5;
+      z-index: 1;
+      mix-blend-mode: screen;
     }
+
+    .aurora-blob {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(100px);
+      animation: aurora-flow 15s infinite alternate ease-in-out;
+    }
+
+    .aurora-1 { top: 20%; left: 10%; width: 60vw; height: 60vw; background: #6366f1; animation-delay: 0s; }
+    .aurora-2 { bottom: 20%; right: 10%; width: 70vw; height: 70vw; background: #ec4899; animation-delay: 5s; }
+    .aurora-3 { top: 30%; left: 30%; width: 50vw; height: 50vw; background: #06b6d4; animation-delay: 10s; }
+
+    @keyframes aurora-flow {
+      0% { transform: translate(0, 0) scale(0.8); }
+      33% { transform: translate(15%, 10%) scale(1.1); }
+      66% { transform: translate(-10%, 20%) scale(0.9); }
+      100% { transform: translate(5%, 15%) scale(1.2); }
+    }
+
+    .shooting-star {
+      position: absolute;
+      width: 150px;
+      height: 2px;
+      background: linear-gradient(90deg, rgba(255,255,255,0.8), transparent);
+      border-radius: 50%;
+      z-index: 2;
+      opacity: 0;
+      transform: rotate(-45deg);
+      filter: drop-shadow(0 0 6px white);
+    }
+
+    .ss-1 { top: 5%; left: 80%; animation: shooting 4s linear infinite 0.5s; }
+    .ss-2 { top: 15%; left: 100%; animation: shooting 5s linear infinite 2s; }
+    .ss-3 { top: 40%; left: 120%; animation: shooting 6s linear infinite 3.5s; }
+    .ss-4 { top: 10%; left: 60%; animation: shooting 4.5s linear infinite 1s; }
+    .ss-5 { top: 25%; left: 90%; animation: shooting 5.5s linear infinite 4s; }
+
+    @keyframes shooting {
+      0% { transform: translate(0, 0) rotate(-45deg); opacity: 1; }
+      15% { opacity: 1; }
+      100% { transform: translate(-2000px, 2000px) rotate(-45deg); opacity: 0; }
+    }
+
+    .cyber-grid {
+      position: absolute;
+      width: 200%;
+      height: 200%;
+      bottom: 50%;
+      left: -50%;
+      background-image: linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px);
+      background-size: 60px 60px;
+      background-position: center bottom;
+      transform: perspective(500px) rotateX(60deg);
+      animation: gridMove 4s linear infinite;
+      mask-image: linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 60%);
+      -webkit-mask-image: linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 60%);
+      z-index: 3;
+    }
+
+    @keyframes gridMove {
+      0% { transform: perspective(500px) rotateX(60deg) translateY(0); }
+      100% { transform: perspective(500px) rotateX(60deg) translateY(60px); }
+    }
+
+    .particle {
+      position: absolute;
+      background: white;
+      border-radius: 50%;
+      opacity: 0;
+      animation: floatUp 5s linear infinite;
+      z-index: 4;
+    }
+
+    .p-1 { left: 10%; width: 2px; height: 2px; animation-duration: 4s; animation-delay: 0s; }
+    .p-2 { left: 30%; width: 3px; height: 3px; animation-duration: 7s; animation-delay: 1s; }
+    .p-3 { left: 70%; width: 2px; height: 2px; animation-duration: 5s; animation-delay: 2s; }
+    .p-4 { left: 90%; width: 4px; height: 4px; animation-duration: 6s; animation-delay: 0.5s; }
+
+    @keyframes floatUp {
+      0% { bottom: 10px; opacity: 0; }
+      50% { opacity: 0.6; box-shadow: 0 0 10px white; }
+      100% { bottom: 100%; opacity: 0; }
+    }
+
+    #game-wrapper {
+      position: relative;
+      width: 100%;
+      max-width: 1100px;
+      height: 100%;
+      max-height: 680px;
+      background: rgba(15, 23, 42, 0.15);
+      border-radius: 24px;
+      overflow: hidden;
+      z-index: 10;
+      backdrop-filter: blur(5px);
+      border: 1px solid rgba(255,255,255,0.1);
+      animation: borderPulse 4s infinite alternate;
+    }
+
+    @media (min-height: 700px) {
+      #game-wrapper {
+        transform: translateY(-4vh);
+      }
+    }
+
+    @keyframes borderPulse {
+      0% { box-shadow: 0 0 40px rgba(34, 211, 238, 0.15), inset 0 0 15px rgba(34, 211, 238, 0.1); border-color: rgba(34, 211, 238, 0.2); }
+      100% { box-shadow: 0 0 60px rgba(244, 114, 182, 0.25), inset 0 8px 25px rgba(244, 114, 182, 0.15); border-color: rgba(244, 114, 182, 0.3); }
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
     .touch-layer {
+      position: absolute;
+      left: 0;
+      width: 100%;
+      height: 50%;
+      z-index: 10;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+    #touch-p1 { top: 0; }
+    #touch-p2 { top: 50%; }
+
+    #ui-layer {
       position: absolute;
       top: 0;
       left: 0;
       width: 100%;
       height: 100%;
       pointer-events: none;
+      display: none;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 25px;
+      box-sizing: border-box;
+      z-index: 20;
     }
+
+    .hud-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 20px;
+      font-weight: 300;
+      letter-spacing: 1px;
+      padding: 8px 20px;
+      border-radius: 12px;
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid var(--glass-border);
+      backdrop-filter: blur(8px);
+      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    }
+
+    .p1-hud { border-left: 4px solid var(--p1-color); color: var(--p1-color); }
+    .p2-hud { border-left: 4px solid var(--p2-color); color: var(--p2-color); opacity: 0; }
+    .lives { letter-spacing: 2px; font-size: 22px; min-width: 100px; text-align: right; display: flex; justify-content: flex-end; gap: 5px; }
+
+    .hud-center {
+      position: absolute;
+      top: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      color: var(--text-secondary);
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      background: rgba(0,0,0,0.6);
+      padding: 5px 15px;
+      border-radius: 20px;
+      border: 1px solid var(--glass-border);
+      backdrop-filter: blur(4px);
+    }
+
+    #center-notify {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 90px;
+      font-weight: 900;
+      text-transform: uppercase;
+      opacity: 0;
+      white-space: nowrap;
+      filter: drop-shadow(0 0 20px rgba(255, 255, 255, 0.5));
+      transition: all 0.2s ease-out;
+      z-index: 50;
+    }
+
+    #btn-pause {
+      display: none;
+      position: absolute;
+      bottom: 25px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 8px 30px;
+      background: rgba(0,0,0,0.4);
+      border: 1px solid var(--glass-border);
+      border-radius: 12px;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+      z-index: 60;
+      backdrop-filter: blur(5px);
+      transition: 0.2s;
+      font-size: 16px;
+      pointer-events: auto;
+    }
+
+    #btn-pause:hover {
+      background: rgba(255,255,255,0.2);
+      border-color: white;
+      transform: translateX(-50%) scale(1.05);
+    }
+
+    .s1-slogan {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 15px;
+      font-size: 48px;
+      font-weight: 900;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.5s ease-in-out;
+      z-index: 15;
+      font-family: "Comic Sans MS", 'Varela Round', 'Arial Rounded MT Bold', 'Segoe UI', sans-serif;
+    }
+    .s1-slogan.visible { opacity: 1; }
+
     .screen {
       position: absolute;
       top: 0;
@@ -58,54 +318,120 @@
       width: 100%;
       height: 100%;
       display: none;
+      flex-direction: column;
+      padding: 40px;
+      background: var(--glass-panel);
+      backdrop-filter: var(--glass-blur);
+      z-index: 30;
     }
-    .screen.active {
+    .screen.active { display: flex; }
+
+    .screen-header h1 {
+      font-size: 36px;
+      font-weight: 800;
+      margin-bottom: 10px;
+    }
+
+    .subtitle {
+      color: var(--text-secondary);
+      font-size: 16px;
+    }
+
+    .main-content-area {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .control-panel {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      width: 100%;
+      max-width: 600px;
+    }
+
+    .control-group {
       display: flex;
       flex-direction: column;
+      gap: 8px;
     }
-    .btn {
-      padding: 10px 20px;
-      border: none;
-      border-radius: 6px;
+    .control-group.full { grid-column: span 2; }
+
+    .control-group label {
+      font-size: 14px;
+      color: var(--text-secondary);
+    }
+
+    .toggle-wrapper {
+      display: flex;
+      gap: 10px;
+    }
+
+    .toggle-btn, select, .btn {
+      padding: 10px 16px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--glass-border);
+      border-radius: 8px;
+      color: white;
       cursor: pointer;
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+
+    .toggle-btn.active, .btn-start {
+      background: var(--p1-color);
+      color: #020617;
       font-weight: bold;
+      border-color: var(--p1-color);
     }
-    .btn-start {
-      background-color: #00f2fe;
-      color: #000;
-    }
-    .btn-secondary {
-      background-color: #333;
-      color: #fff;
-    }
+
     .btn-gold {
-      background-color: #facc15;
-      color: #000;
+      background: var(--comp-gold);
+      color: #020617;
+      font-weight: bold;
+      border-color: var(--comp-gold);
     }
-    .disabled {
-      opacity: 0.5;
-      pointer-events: none;
+
+    .screen-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
     }
+
+    .btn-group {
+      display: flex;
+      gap: 15px;
+      width: 100%;
+      justify-content: flex-end;
+    }
+
+    .choice-card {
+      background: #0f172a;
+      padding: 30px;
+      border-radius: 16px;
+      border: 1px solid var(--glass-border);
+      text-align: center;
+      margin: auto;
+      max-width: 400px;
+      width: 100%;
+    }
+    .choice-title { font-size: 22px; font-weight: bold; margin-bottom: 10px; }
+    .choice-desc { color: var(--text-secondary); margin-bottom: 20px; }
   </style>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
 
-  <!-- 背景音樂 -->
   <audio id="bgm-season1" src="https://ltmps-chusiuhin.github.io/rhythm-game/30.mp3" preload="auto" style="display:none;"></audio>
   <audio id="bgmPlayer" style="display:none;"></audio>
 
-  <!-- 背景視覺與特效特效 -->
   <div class="bg-layer">
-    <!-- 動態極光流光特效 -->
     <div class="aurora-container">
       <div class="aurora-blob aurora-1"></div>
       <div class="aurora-blob aurora-2"></div>
       <div class="aurora-blob aurora-3"></div>
     </div>
-    <!-- 流星雨特效 -->
     <div class="shooting-star ss-1"></div>
     <div class="shooting-star ss-2"></div>
     <div class="shooting-star ss-3"></div>
@@ -124,103 +450,119 @@
     <div id="touch-p2" class="touch-layer"></div>
     
     <div id="ui-layer" style="display: none;">
-      <!-- Slogan 與吉祥物 -->
-      <div id="season1-slogan-top" class="sl-slogan"></div>
-      <div id="season1-slogan-bottom" class="sl-slogan"></div>
-      <img id="mascot-left" src="left.png" class="mascot" alt="Mascot Left">
-      <img id="mascot-right" src="right.png" class="mascot" alt="Mascot Right">
+      <div id="season1-slogan-top" class="s1-slogan">
+        <span style="--i:1; color: #ffb3ba;">藍</span>
+        <span style="--i:2; color: #ffd1a9;">循</span>
+        <span style="--i:3; color: #fde047;">卅</span>
+        <span style="--i:4; color: #baffc9;">載</span>
+        <span style="--i:5; color: #bae1ff;">傅</span>
+        <span style="--i:6; color: #dcbaff;">承</span>
+      </div>
+      <div id="season1-slogan-bottom" class="s1-slogan">
+        <span style="--i:1; color: #ffb3ba;">信</span>
+        <span style="--i:2; color: #ffd1a9;">守</span>
+        <span style="--i:3; color: #fde047;">真</span>
+        <span style="--i:4; color: #baffc9;">理</span>
+        <span style="--i:5; color: #bae1ff;">育</span>
+        <span style="--i:6; color: #dcbaff;">英</span>
+      </div>
       
-      <div class="hud-bar p1-hud" id="hud-p1"></div>
+      <div class="hud-bar p1-hud" id="hud-p1">
+        <div>P1 SCORE <span id="p1-score" style="margin-left:10px; color:white;">0</span></div>
+        <div id="p1-lives" class="lives"></div>
+      </div>
       <div class="hud-center" id="round-info">ROUND 3/6</div>
-      <div id="center-notify" style="color: rgb(250, 204, 21); opacity: 0; top: 50%; transform: translate(-50%, -50%) scale(1);">PLAY</div>
-      <div class="hud-bar p2-hud" id="hud-p2" style="margin-top: auto; opacity: 0;"></div>
-      
-      <!-- 返回主選單/暫停按鈕 -->
-      <button id="btn-pause" onclick="pauseGame()" style="display: none;">返回選單</button>
+      <div id="center-notify">PLAY</div>
+      <div class="hud-bar p2-hud" id="hud-p2">
+        <div>P2 SCORE <span id="p2-score" style="margin-left:10px; color:white;">0</span></div>
+        <div id="p2-lives" class="lives"></div>
+      </div>
+
+      <button id="btn-pause" onclick="pauseGame()">返回主選單</button>
     </div>
 
-    <!-- 主選單畫面 -->
+    <!-- 主選單 -->
     <div id="menu-screen" class="screen active">
       <div class="screen-header">
         <h1>藍循節奏大師</h1>
         <p class="subtitle">先聆聽四拍節奏，然後擊打出相同的節奏。</p>
-        <div class="season-banner"></div>
       </div>
       <div class="main-content-area">
         <div class="control-panel">
-          <div class="control-group" id="player-group"></div>
-          <div class="control-group"></div>
-          <div id="mode-desc" class="mode-description"></div>
-          <div class="control-group" id="round-group"></div>
-          <div class="control-group"></div>
-          <div class="control-group full"></div>
+          <div class="control-group" id="player-group">
+            <label>玩家人數</label>
+            <div class="toggle-wrapper">
+              <button class="toggle-btn active" onclick="setPlayers(1)">單人(1P)</button>
+              <button class="toggle-btn" onclick="setPlayers(2)">雙人(2P)</button>
+            </div>
+          </div>
+          <div class="control-group">
+            <label>遊戲模式</label>
+            <div class="toggle-wrapper">
+              <button class="toggle-btn active" onclick="setMode('fixed')">練習</button>
+              <button class="toggle-btn" onclick="setMode('season1')">賽季1</button>
+            </div>
+          </div>
+          <div id="mode-desc" class="control-group full">
+            <div><span style="color:var(--p1-color); font-weight:bold;">[1P]</span> 單人模式：全螢幕判定，使用 [空白鍵] 或點擊螢幕。</div>
+          </div>
         </div>
       </div>
       <div class="screen-footer">
         <div class="btn-group">
-          <div class="leaderboard-btn-wrapper"></div>
+          <button class="btn btn-secondary" id="btn-leaderboard" onclick="openLeaderboardMenu()">名人堂</button>
           <button class="btn btn-start" onclick="startGame()">開始遊戲</button>
-          <button id="btn-leaderboard" class="btn btn-secondary btn-gold" onclick="openCompetitionRanking()">龍虎榜</button>
-          <button id="btn-lb-lock" onclick="toggleLeaderboardLock()" style="margin-left: 5px;">🔓</button>
+          <button class="btn btn-gold" onclick="openCompetitionRanking()">賽季龍虎榜</button>
         </div>
       </div>
     </div>
 
-    <!-- 名人堂/排行榜畫面 -->
+    <!-- 名人堂 -->
     <div id="leaderboard-screen" class="screen">
-      <div class="screen-header">
-        <h1>名人堂</h1>
-      </div>
-      <div class="scroll-content">
-        <div class="leaderboard-section active"></div>
-        <div class="screen-footer">
-          <button class="btn btn-secondary" style="width:auto; padding: 12px 30px;" onclick="showMenu()">返回主選單</button>
-        </div>
+      <div class="screen-header"><h1>名人堂</h1></div>
+      <div class="screen-footer">
+        <button class="btn btn-secondary" onclick="showMenu()">返回主選單</button>
       </div>
     </div>
 
-    <!-- 競賽畫面 -->
+    <!-- 賽季競賽 -->
     <div id="competition-screen" class="screen">
-      <div class="screen-header"></div>
-      <div class="scroll-content"></div>
-      <div class="screen-footer"></div>
+      <div class="screen-header"><h1 style="color:var(--comp-gold);">賽季龍虎榜</h1></div>
+      <div class="screen-footer">
+        <button class="btn btn-secondary" onclick="showMenu()">返回主選單</button>
+      </div>
     </div>
 
-    <!-- 結算結果畫面 -->
+    <!-- 結算畫面 -->
     <div id="result-screen" class="screen">
-      <div class="screen-header"></div>
-      <div class="scroll-content" id="result-scroll-container"></div>
+      <div class="screen-header"><h1>訓練結束</h1></div>
       <div class="screen-footer">
         <button class="btn btn-start" onclick="resetToMenu()">返回選單</button>
       </div>
     </div>
 
-    <!-- 暫停確認視窗 -->
-    <div id="pause-overlay" class="screen" style="z-index: 100;">
+    <!-- 暫停視窗 -->
+    <div id="pause-overlay" class="screen" style="z-index: 100; background: rgba(0,0,0,0.8);">
       <div class="choice-card">
         <div class="choice-title">暫停遊戲</div>
         <div class="choice-desc">是否確定放棄當前進度並返回主選單？</div>
-        <div style="display: flex; gap:10px; margin-top:20px; justify-content: center;">
+        <div style="display: flex; gap:10px; justify-content: center;">
           <button class="btn btn-secondary" onclick="resumeGame()">繼續遊戲</button>
-          <button class="btn btn-start" onclick="confirmQuit()">確定離開</button>
+          <button class="btn btn-start" onclick="quitToMenu()">確定離開</button>
         </div>
       </div>
     </div>
   </div>
 
   <script>
-    // 1: 自定義音樂與譜面參數設定
-    const SEASON1_BPM = 75; // 歌曲速度 (BPM)
-    const SEASON1_MUSIC_START_DELAY = 1.0; // 按下開始後，等待多少秒才開始播放音樂 (秒)
-    const SEASON1_CHART_OFFSET = 1.57; // 譜面偏移 (秒)
+    const SEASON1_BPM = 75;
+    const SEASON1_MUSIC_START_DELAY = 1.0;
+    const SEASON1_CHART_OFFSET = 1.52;
+    const SEASON1_NOTE_FLIGHT_TIME = 3.0;
 
-    // 譜面設定：每個字元代表一個「十六分音符」的長度 (1=打擊, 0=不打擊)
-    const SEASON1_MAP = "10000010100000101000001010000010100000101000001010010010100000101000001010000011101010110000001010110011100100101001001010000000000000101000001010000011101010110000001010000010100000101010101100000010100000101000001110101011000000101011001110010010101010110000001110101011000000111010101100000011101010110000001110010010100000000010101010010011101010100010000000101010100100101010101010110000001010101001001110101010100100101000001010110010100100101000000000000000";
+    const SEASON1_MAP = "1010000010100000101000001010000010100100101000001010000011101010110000001010110011";
+    const SEASON1_LYRICS = "藍天碧海春風化雨暖我心無盡旅途伴快樂一世間".replace(/\s+/g, '');
 
-    // 歌詞設定：系統會自動去除空格，並依序填入音符中
-    const SEASON1_LYRICS = "藍天碧海春風化雨暖我心無盡 旅途伴快樂一世間 恩典早已充滿我心 勤學 勤道效主愛人樂與學在藍循我在長廊裡禱告你在球場上躍步帶著疑 與苦 也會為我引路我結伴同行 向天際遇星河大海內奮鬥得到知識再破巨浪你我在藍循 那美夢全然綻放用新世界的光去共創".replace(/\s+/g, '');
-
-    // Firebase 配置
     const firebaseConfig = {
       apiKey: "AIzaSyD4rb1PHX9TCxj8VORCnZWBIk6HPDZK8NE",
       authDomain: "ltmps-rhythm-game.firebaseapp.com",
@@ -236,7 +578,6 @@
     let isGoogleLoggedIn = false;
     let googleUserInfo = null;
     let tokenClient;
-
     let gameState = "MENU";
     let config = { players: 1, mode: 'fixed' };
     let timeouts = [];
@@ -248,35 +589,9 @@
     const width = canvas.width;
     const height = canvas.height;
 
-    const AudioEngine = {
-      ctx: new (window.AudioContext || window.webkitAudioContext)()
-    };
-
-    window.onload = function () {
-      if (window.google) {
-        tokenClient = google.accounts.oauth2.initTokenClient({
-          client_id: '573911894747-8c28hfr0bmkjnn2pkm2msg6sjal1thqe.apps.googleusercontent.com',
-          scope: 'email profile',
-          callback: (tokenResponse) => {
-            if (tokenResponse && tokenResponse.access_token) {
-              fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
-                headers: { Authorization: `Bearer ${tokenResponse.access_token}` }
-              }).then(res => res.json()).then(data => {
-                isGoogleLoggedIn = true;
-                googleUserInfo = data;
-                alert("Google 登入成功！歡迎 " + data.name);
-                setModeInternal("season1");
-              }).catch(err => {
-                console.error("Error fetching user info:", err);
-                alert("獲取用戶資訊失敗，請重試。");
-              });
-            }
-          }
-        });
-      }
-
+    window.onload = function() {
       try {
-        if (firebaseConfig.apiKey && firebaseConfig.apiKey !== "您的_API_KEY") {
+        if (firebaseConfig.apiKey) {
           firebase.initializeApp(firebaseConfig);
           db = firebase.firestore();
           lockDocRef = db.collection('config').doc('leaderboard_settings');
@@ -286,7 +601,6 @@
             } else {
               isLBLocked = false;
             }
-            updateLockUI();
           });
         }
       } catch (e) {
@@ -294,95 +608,24 @@
       }
     };
 
-    function toggleLeaderboardLock() {
-      let actionStr = isLBLocked ? "解鎖" : "上鎖";
-      let pwd = prompt(`請輸入密碼以進行「${actionStr}」:`);
-      if (pwd === "Ltmps") {
-        setLockState(!isLBLocked);
-      } else if (pwd !== null && pwd !== "") {
-        alert("密碼錯誤！");
-      }
-    }
-
-    function setLockState(locked) {
-      if (lockDocRef) {
-        lockDocRef.set({ locked: locked }, { merge: true }).then(() => {
-          isLBLocked = locked;
-          updateLockUI();
-          alert(locked ? "名人堂已成功上鎖。" : "名人堂已開放。");
-        }).catch(err => {
-          console.error("無法更新雲端狀態", err);
-          alert("更新狀態失敗！請檢查 Firebase 資料庫的寫入權限。");
-        });
-      } else {
-        isLBLocked = locked;
-        updateLockUI();
-      }
-    }
-
-    function updateLockUI() {
-      const btn = document.getElementById('btn-leaderboard');
-      const lockBtn = document.getElementById("btn-lb-lock");
-      if (btn && lockBtn) {
-        if (isLBLocked) {
-          lockBtn.innerText = "🔒";
-          btn.innerText = "名人堂 (已上鎖)";
-          btn.classList.add('disabled');
-        } else {
-          lockBtn.innerText = "🔓";
-          btn.innerText = "龍虎榜";
-          btn.classList.remove('disabled');
-        }
-      }
-    }
-
-    const DESCRIPTIONS = {
-      players: {
-        1: "單人模式：全螢幕判定，使用 [空白鍵]、[A] 或點擊螢幕。",
-        2: "雙人對戰：P1 點擊上半屏/ [空白鍵/A]，P2 點擊下半屏/ [1/4]。"
-      },
-      modes: {
-        "fixed": "練習模式：標準玩法，適合體驗不同的速度及難度。",
-        "vanishing": "消失模式：音符會在途中消失，考驗你對節奏的記憶力。",
-        "survival": "生存模式：無盡挑戰直至出現多次失誤，挑戰你的集中力。",
-        "vanishing-survival": "生存消失：消失與生存的混合模式，大師級的峰值挑戰。",
-        "progressive": "漸進模式：無盡挑戰直至出現5次失誤，速度將逐漸提升。",
-        "season1": "賽季1：欣賞三十周年主題曲一邊擊打節奏！（需先登入 Google 帳戶）"
-      }
-    };
-
     function showMenu() {
-      document.querySelectorAll(".screen").forEach(s => s.classList.remove('active'));
-      document.getElementById("menu-screen").classList.add("active");
-      updateDescription();
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.getElementById('menu-screen').classList.add('active');
     }
 
     function pauseGame() {
-      if (gameState !== "PLAYING") return;
-      gameState = "PAUSED";
-      if (AudioEngine.ctx) AudioEngine.ctx.suspend();
-      const bgm = document.getElementById('bgm-season1');
-      if (bgm && !bgm.paused) {
-        bgm.pause();
-        session.bgmWasPlaying = true;
-      } else {
-        session.bgmWasPlaying = false;
-      }
-      document.getElementById("pause-overlay").classList.add("active");
+      if (gameState !== 'PLAYING') return;
+      gameState = 'PAUSED';
+      document.getElementById('pause-overlay').classList.add('active');
     }
 
     function resumeGame() {
-      document.getElementById("pause-overlay").classList.remove('active');
-      gameState = "PLAYING";
-      if (AudioEngine.ctx) AudioEngine.ctx.resume();
-      const bgm = document.getElementById('bgm-season1');
-      if (bgm && session.bgmWasPlaying) {
-        bgm.play();
-      }
+      document.getElementById('pause-overlay').classList.remove('active');
+      gameState = 'PLAYING';
     }
 
-    function confirmQuit() {
-      document.getElementById("pause-overlay").classList.remove('active');
+    function quitToMenu() {
+      document.getElementById('pause-overlay').classList.remove('active');
       resetToMenu();
     }
 
@@ -395,85 +638,33 @@
         animId = null;
       }
       ctx.clearRect(0, 0, width, height);
-
-      if (session.fadeInterval) {
-        clearInterval(session.fadeInterval);
-        session.fadeInterval = null;
-      }
-
-      const bgmSeason = document.getElementById("bgm-season1");
-      if (bgmSeason) {
-        bgmSeason.pause();
-        bgmSeason.currentTime = 0;
-        bgmSeason.volume = 1.0;
-      }
-
-      if (AudioEngine.ctx && AudioEngine.ctx.state === "running") {
-        AudioEngine.ctx.suspend();
-      }
-
-      document.getElementById("ui-layer").style.display = "none";
-      document.getElementById('season1-slogan-top').classList.remove('visible');
-      document.getElementById('season1-slogan-bottom').classList.remove('visible');
-      document.getElementById('mascot-left').classList.remove('visible');
-      document.getElementById('mascot-right').classList.remove('visible');
-      document.getElementById('btn-pause').style.display = "none";
-      
+      document.getElementById('ui-layer').style.display = "none";
       showMenu();
     }
 
-    function updateDescription() {
-      const pText = DESCRIPTIONS.players[config.players] || "";
-      const mText = DESCRIPTIONS.modes[config.mode] || "";
-      const el = document.getElementById('mode-desc');
-      
-      let pColor = config.players === 1 ? "var(--p1-color, #00f2fe)" : "var(--p2-color, #ff007f)";
-      let mColor = "white";
-
-      if (config.mode.includes('vanishing')) mColor = '#d946ef';
-      if (config.mode.includes('survival')) mColor = '#facc15';
-      if (config.mode === 'vanishing-survival') mColor = '#187171';
-      if (config.mode === 'progressive') mColor = 'var(--prog-color, #3b82f6)';
-      if (config.mode === 'season1') mColor = 'var(--comp-gold, #f59e0b)';
-
-      if (el) {
-        el.innerHTML = `<div><span style="color:${pColor}; font-weight:bold;">[${config.players}P]</span> ${pText}</div>` +
-                       `<div style="margin-top:3px;"><span style="color:${mColor}; font-weight:bold;">[${getModeName(config.mode)}]</span> ${mText}</div>`;
-      }
-    }
-
-    function getModeName(m) {
-      const names = {
-        'fixed': '練習',
-        'vanishing': '消失',
-        'survival': '生存',
-        'vanishing-survival': '極限',
-        'progressive': '漸進',
-        'season1': '賽季1'
-      };
-      return names[m] || m;
-    }
-
     function startGame() {
-      alert("遊戲開始！");
-      document.querySelectorAll(".screen").forEach(s => s.classList.remove('active'));
-      document.getElementById("ui-layer").style.display = "block";
-      document.getElementById("btn-pause").style.display = "block";
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.getElementById('ui-layer').style.display = "flex";
+      document.getElementById('btn-pause').style.display = "block";
       gameState = "PLAYING";
     }
 
-    function openCompetitionRanking() {
-      if (isLBLocked) {
-        alert("名人堂目前已上鎖！");
-        return;
-      }
-      document.querySelectorAll(".screen").forEach(s => s.classList.remove('active'));
-      document.getElementById("leaderboard-screen").classList.add("active");
+    function openLeaderboardMenu() {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.getElementById('leaderboard-screen').classList.add('active');
     }
 
-    function setModeInternal(mode) {
+    function openCompetitionRanking() {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.getElementById('competition-screen').classList.add('active');
+    }
+
+    function setPlayers(num) {
+      config.players = num;
+    }
+
+    function setMode(mode) {
       config.mode = mode;
-      updateDescription();
     }
   </script>
 </body>
